@@ -1,0 +1,10 @@
+jpa:
+  show-sql: true
+  hibernate:
+    ddl-auto: create-drop
+  database-platform: org.hibernate.dialect.H2Dialect
+  properties:
+    hibernate:
+      format_sql: true
+      use_sql_comment: true
+      highlight_sql: true
