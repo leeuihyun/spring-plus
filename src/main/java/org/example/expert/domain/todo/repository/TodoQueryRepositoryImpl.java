@@ -1,12 +1,24 @@
 package org.example.expert.domain.todo.repository;
 
+import static org.example.expert.domain.comment.entity.QComment.comment;
+import static org.example.expert.domain.manager.entity.QManager.manager;
 import static org.example.expert.domain.todo.entity.QTodo.todo;
 import static org.example.expert.domain.user.entity.QUser.user;
 
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.example.expert.domain.todo.dto.request.TodoSearchRequest;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.entity.Todo;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -21,5 +33,48 @@ public class TodoQueryRepositoryImpl implements TodoQueryRepository{
             .leftJoin(todo.user, user).fetchJoin()
             .where(todo.id.eq(todoId))
             .fetchOne());
+    }
+
+    @Override
+    public Page<TodoSearchResponse> findTodos(TodoSearchRequest request, Pageable pageable) {
+        String title = "%" + request.getTitle().trim() + "%";
+        String managerName = "%" + request.getManagerName().trim() + "%";
+        LocalDate startDate = Optional.ofNullable(request.getStartDate())
+            .orElse(LocalDate.of(1, 1, 1));
+        LocalDate endDate = Optional.ofNullable(request.getEndDate())
+            .orElse(LocalDate.now());
+
+        BooleanExpression titleWhere = todo.title.like(title);
+        BooleanExpression managerNameWhere = manager.user.nickname.like(managerName);
+        BooleanExpression dateWhere =
+            todo.createdAt.between(startDate.atStartOfDay(), endDate.atTime(23,59,59));
+
+        List<TodoSearchResponse> todoList = jpaQueryFactory
+            .select(
+                Projections.constructor(TodoSearchResponse.class,
+                    todo.title,
+                    manager.id.countDistinct().coalesce(0L),
+                    comment.id.countDistinct().coalesce(0L)
+            ))
+            .from(todo)
+            .leftJoin(manager).on(todo.id.eq(manager.todo.id))
+            .leftJoin(manager.user, user)
+            .leftJoin(comment).on(todo.id.eq(comment.todo.id))
+            .where(titleWhere, managerNameWhere, dateWhere)
+            .groupBy(todo.id)
+            .orderBy(todo.createdAt.desc())
+            .offset(pageable.getOffset())
+            .limit(pageable.getPageSize())
+            .fetch();
+
+        Long totalCount = Optional.ofNullable(jpaQueryFactory
+            .select(todo.count())
+            .from(todo)
+            .leftJoin(manager).on(todo.id.eq(manager.todo.id))
+            .leftJoin(manager.user, user)
+            .where(titleWhere, managerNameWhere, dateWhere)
+            .fetchOne()).orElse(0L);
+
+        return new PageImpl<>(todoList, pageable, totalCount);
     }
 }
