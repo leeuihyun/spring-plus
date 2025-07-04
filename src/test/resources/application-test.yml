@@ -14,6 +14,10 @@ spring:
         cache:
           use_second_level_cache: false   # 2차 캐시 끄기
           use_query_cache: false
+
+jwt:
+  secret:
+    key: enfih1329hs9dvalwmEJib31agea3131tgfsahsj6jwaw4gr80gkjsnoefnqldc
 #  jpa:
 ##    show-sql: true
 #    hibernate:
