@@ -17,3 +17,12 @@
 | ✅ 인덱스 적용  | `1.317`     | `1.171`      | `0.003`      | 약 `0.13`     | 약 `1.17`    |
 
 - 1,2차 캐싱이 테스트코드에서 없어지지 않아서 2번째 조회 이후부터 시간이 줄었습니다.
+
+## 운영 환경 변수
+
+```json
+DB_URL=jdbc:mysql: //localhost:3306/yourdb
+DB_USERNAME=yourusername
+DB_PASSWORD=youruserpassword
+SECRET_KEY=your_jwt_secret_key
+```
